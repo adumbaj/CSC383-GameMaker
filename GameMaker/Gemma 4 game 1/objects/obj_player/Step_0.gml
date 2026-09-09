@@ -30,5 +30,9 @@ y = clamp(y, sprite_height / 2, room_height - sprite_height / 2);
 
 
 if (life <= 0) {
-    game_restart();
+    room_goto(rm_gameover);
+}
+
+if (lightning_count >= lightning_goal) {
+    room_goto(rm_win);
 }

@@ -19,9 +19,14 @@
   },
   "name":"Gemma 4 game 1",
   "resources":[
+    {"id":{"name":"fnt_gameover","path":"fonts/fnt_gameover/fnt_gameover.yy",},},
     {"id":{"name":"obj_enemy","path":"objects/obj_enemy/obj_enemy.yy",},},
     {"id":{"name":"obj_energy_pill","path":"objects/obj_energy_pill/obj_energy_pill.yy",},},
+    {"id":{"name":"obj_gameover","path":"objects/obj_gameover/obj_gameover.yy",},},
     {"id":{"name":"obj_player","path":"objects/obj_player/obj_player.yy",},},
+    {"id":{"name":"obj_win","path":"objects/obj_win/obj_win.yy",},},
+    {"id":{"name":"rm_gameover","path":"rooms/rm_gameover/rm_gameover.yy",},},
+    {"id":{"name":"rm_win","path":"rooms/rm_win/rm_win.yy",},},
     {"id":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
     {"id":{"name":"snd_damage","path":"sounds/snd_damage/snd_damage.yy",},},
     {"id":{"name":"snd_pickUp","path":"sounds/snd_pickUp/snd_pickUp.yy",},},
@@ -33,6 +38,8 @@
   "resourceVersion":"2.0",
   "RoomOrderNodes":[
     {"roomId":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
+    {"roomId":{"name":"rm_gameover","path":"rooms/rm_gameover/rm_gameover.yy",},},
+    {"roomId":{"name":"rm_win","path":"rooms/rm_win/rm_win.yy",},},
   ],
   "templateType":"game",
   "TextureGroups":[
