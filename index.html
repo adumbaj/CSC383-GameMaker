@@ -1,371 +1,2657 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
+
+  <meta charset="UTF-8">
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ArenaRoids</title>
+
+
+
+  <title>ArenaRoids01</title>
+
+
+
   <style>
+
     html, body {
+
       width: 100%;
+
       height: 100%;
+
       margin: 0;
+
       overflow: hidden;
-      background: #000;
-      font-family: Arial, sans-serif;
+
+      background: black;
+
     }
+
+
 
     #renderCanvas {
+
       width: 100%;
+
       height: 100%;
+
       display: block;
+
       outline: none;
+
     }
+
   </style>
+
+
+
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
+
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+
 </head>
+
+
+
 <body>
-  <canvas id="renderCanvas" tabindex="0" aria-label="ArenaRoids game"></canvas>
 
-  <script>
-    const canvas = document.getElementById("renderCanvas");
-    const engine = new BABYLON.Engine(canvas, true);
 
-    const createScene = () => {
-      const scene = new BABYLON.Scene(engine);
-      scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
 
-      const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, -10), scene);
-      camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-      const gameHeight = 20;
+<canvas id="renderCanvas" tabindex="0"></canvas>
 
-      function updateCamera() {
-        const aspect = engine.getRenderWidth() / engine.getRenderHeight();
-        camera.orthoTop = gameHeight / 2;
-        camera.orthoBottom = -gameHeight / 2;
-        camera.orthoLeft = -(gameHeight * aspect) / 2;
-        camera.orthoRight = (gameHeight * aspect) / 2;
+
+
+<script>
+
+
+
+const canvas = document.getElementById("renderCanvas");
+
+const engine = new BABYLON.Engine(canvas, true);
+
+
+
+const createScene = function () {
+
+
+
+  const scene = new BABYLON.Scene(engine);
+
+
+
+  scene.clearColor =
+
+    new BABYLON.Color4(0, 0, 0, 1);
+
+
+
+
+
+  // ============================================================
+
+  // CAMERA
+
+  // ============================================================
+
+
+
+  const camera = new BABYLON.FreeCamera(
+
+    "camera",
+
+    new BABYLON.Vector3(0, 0, -10),
+
+    scene
+
+  );
+
+
+
+  camera.mode =
+
+    BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+
+
+
+  const gameHeight = 20;
+
+
+
+
+
+  function updateCamera() {
+
+
+
+    const aspect =
+
+      engine.getRenderWidth() /
+
+      engine.getRenderHeight();
+
+
+
+    camera.orthoTop =
+
+      gameHeight / 2;
+
+
+
+    camera.orthoBottom =
+
+      -gameHeight / 2;
+
+
+
+    camera.orthoLeft =
+
+      -(gameHeight * aspect) / 2;
+
+
+
+    camera.orthoRight =
+
+      (gameHeight * aspect) / 2;
+
+  }
+
+
+
+  updateCamera();
+
+
+
+
+
+  // ============================================================
+
+  // MATERIALS
+
+  // ============================================================
+
+
+
+  function makeMaterial(name, color) {
+
+
+
+    const material =
+
+      new BABYLON.StandardMaterial(
+
+        name,
+
+        scene
+
+      );
+
+
+
+    material.diffuseColor = color;
+
+    material.emissiveColor = color;
+
+
+
+    material.disableLighting = true;
+
+
+
+    return material;
+
+  }
+
+
+
+
+
+  const shipMaterial =
+
+    makeMaterial(
+
+      "shipMaterial",
+
+      new BABYLON.Color3(1, 1, 1)
+
+    );
+
+
+
+
+
+  const asteroidMaterial =
+
+    makeMaterial(
+
+      "asteroidMaterial",
+
+      new BABYLON.Color3(
+
+        0.65,
+
+        0.65,
+
+        0.65
+
+      )
+
+    );
+
+
+
+
+
+  // ============================================================
+
+  // KEYBOARD
+
+  // ============================================================
+
+
+
+  const keys = {};
+
+
+
+
+
+  window.addEventListener(
+
+    "keydown",
+
+    function(event) {
+
+
+
+      keys[event.code] = true;
+
+
+
+      if (
+
+        event.code === "Space" ||
+
+        event.code === "ArrowUp" ||
+
+        event.code === "ArrowLeft" ||
+
+        event.code === "ArrowRight"
+
+      ) {
+
+        event.preventDefault();
+
       }
+
+    }
+
+  );
+
+
+
+
+
+  window.addEventListener(
+
+    "keyup",
+
+    function(event) {
+
+
+
+      keys[event.code] = false;
+
+    }
+
+  );
+
+
+
+
+
+  // ============================================================
+
+  // GAME VARIABLES
+
+  // ============================================================
+
+
+
+  let score = 0;
+
+  let lives = 3;
+
+
+
+  let gameOver = false;
+
+
+
+  let canShoot = true;
+
+
+
+  const bullets = [];
+
+  const asteroids = [];
+
+
+
+
+
+
+
+  // ============================================================
+  // SOUNDS
+  // ============================================================
+
+  const laserSound = new Audio("laser.mp3");
+  const boomSound = new Audio("boom.mp3");
+
+  laserSound.volume = 0.5;
+  boomSound.volume = 0.7;
+
+
+  function playLaserSound() {
+
+    const sound = laserSound.cloneNode();
+
+    sound.volume = laserSound.volume;
+
+    sound.play().catch(function() {});
+  }
+
+
+  function playBoomSound() {
+
+    boomSound.currentTime = 0;
+
+    boomSound.play().catch(function() {});
+  }
+
+
+
+  // ============================================================
+
+  // GUI
+
+  // ============================================================
+
+
+
+  const gui =
+
+    BABYLON.GUI.AdvancedDynamicTexture
+
+      .CreateFullscreenUI("UI");
+
+
+
+
+
+  const scoreText =
+
+    new BABYLON.GUI.TextBlock();
+
+
+
+  scoreText.text = "SCORE: 0";
+
+  scoreText.color = "white";
+
+  scoreText.fontSize = 24;
+
+
+
+  scoreText.textHorizontalAlignment =
+
+    BABYLON.GUI.Control
+
+      .HORIZONTAL_ALIGNMENT_LEFT;
+
+
+
+  scoreText.textVerticalAlignment =
+
+    BABYLON.GUI.Control
+
+      .VERTICAL_ALIGNMENT_TOP;
+
+
+
+  scoreText.paddingLeft = "20px";
+
+  scoreText.paddingTop = "20px";
+
+
+
+  gui.addControl(scoreText);
+
+
+
+
+
+  const livesText =
+
+    new BABYLON.GUI.TextBlock();
+
+
+
+  livesText.text = "LIVES: 3";
+
+  livesText.color = "white";
+
+  livesText.fontSize = 24;
+
+
+
+  livesText.textHorizontalAlignment =
+
+    BABYLON.GUI.Control
+
+      .HORIZONTAL_ALIGNMENT_RIGHT;
+
+
+
+  livesText.textVerticalAlignment =
+
+    BABYLON.GUI.Control
+
+      .VERTICAL_ALIGNMENT_TOP;
+
+
+
+  livesText.paddingRight = "20px";
+
+  livesText.paddingTop = "20px";
+
+
+
+  gui.addControl(livesText);
+
+
+
+
+
+  const controlsText =
+
+    new BABYLON.GUI.TextBlock();
+
+
+
+  controlsText.text =
+
+    "W / ↑ = THRUST    A/D or ←/→ = TURN    SPACE = FIRE";
+
+
+
+  controlsText.color = "white";
+
+  controlsText.fontSize = 18;
+
+
+
+  controlsText.textVerticalAlignment =
+
+    BABYLON.GUI.Control
+
+      .VERTICAL_ALIGNMENT_BOTTOM;
+
+
+
+  controlsText.paddingBottom = "15px";
+
+
+
+  gui.addControl(controlsText);
+
+
+
+
+
+  const gameOverText =
+
+    new BABYLON.GUI.TextBlock();
+
+
+
+  gameOverText.color = "white";
+
+  gameOverText.fontSize = 40;
+
+
+
+  gameOverText.textHorizontalAlignment =
+
+    BABYLON.GUI.Control
+
+      .HORIZONTAL_ALIGNMENT_CENTER;
+
+
+
+  gameOverText.textVerticalAlignment =
+
+    BABYLON.GUI.Control
+
+      .VERTICAL_ALIGNMENT_CENTER;
+
+
+
+  gui.addControl(gameOverText);
+
+
+
+
+
+  // ============================================================
+
+  // CREATE 2D SHIP
+
+  // ============================================================
+
+
+
+  function createShip() {
+
+
+
+    const ship =
+
+      new BABYLON.Mesh(
+
+        "ship",
+
+        scene
+
+      );
+
+
+
+
+
+    const positions = [
+
+
+
+       0,     0.65, 0,
+
+
+
+      -0.45, -0.45, 0,
+
+
+
+       0.45, -0.45, 0
+
+
+
+    ];
+
+
+
+
+
+    const indices = [
+
+      0, 1, 2
+
+    ];
+
+
+
+
+
+    const normals = [];
+
+
+
+
+
+    BABYLON.VertexData
+
+      .ComputeNormals(
+
+        positions,
+
+        indices,
+
+        normals
+
+      );
+
+
+
+
+
+    const vertexData =
+
+      new BABYLON.VertexData();
+
+
+
+
+
+    vertexData.positions =
+
+      positions;
+
+
+
+    vertexData.indices =
+
+      indices;
+
+
+
+    vertexData.normals =
+
+      normals;
+
+
+
+
+
+    vertexData.applyToMesh(
+
+      ship
+
+    );
+
+
+
+
+
+    ship.material =
+
+      shipMaterial;
+
+
+
+
+
+    return ship;
+
+  }
+
+
+
+
+
+  const ship =
+
+    createShip();
+
+
+
+
+
+  ship.position.x = 0;
+
+  ship.position.y = 0;
+
+  ship.position.z = 0;
+
+
+
+
+
+  // ============================================================
+
+  // SHIP MOVEMENT / PHYSICS
+
+  // ============================================================
+
+
+
+  let shipAngle = 0;
+
+
+
+
+
+  // Turning speed
+
+  const rotationSpeed = 0.025;
+
+
+
+
+
+  // How strongly W accelerates the ship
+
+  const thrustPower = 0.0015;
+
+
+
+
+
+  // Maximum possible speed
+
+  const maxSpeed = 0.055;
+
+
+
+
+
+  // Slight resistance.
+
+  // 1.0 would mean absolutely no resistance.
+
+  const friction = 0.998;
+
+
+
+
+
+  // Current velocity / inertia
+
+  const shipVelocity =
+
+    new BABYLON.Vector2(
+
+      0,
+
+      0
+
+    );
+
+
+
+
+
+  // ============================================================
+
+  // SCREEN WRAPPING
+
+  // ============================================================
+
+
+
+  function wrapObject(object) {
+
+
+
+    const left =
+
+      camera.orthoLeft;
+
+
+
+    const right =
+
+      camera.orthoRight;
+
+
+
+    const top =
+
+      camera.orthoTop;
+
+
+
+    const bottom =
+
+      camera.orthoBottom;
+
+
+
+
+
+    if (
+
+      object.position.x >
+
+      right
+
+    ) {
+
+
+
+      object.position.x =
+
+        left;
+
+    }
+
+
+
+
+
+    if (
+
+      object.position.x <
+
+      left
+
+    ) {
+
+
+
+      object.position.x =
+
+        right;
+
+    }
+
+
+
+
+
+    if (
+
+      object.position.y >
+
+      top
+
+    ) {
+
+
+
+      object.position.y =
+
+        bottom;
+
+    }
+
+
+
+
+
+    if (
+
+      object.position.y <
+
+      bottom
+
+    ) {
+
+
+
+      object.position.y =
+
+        top;
+
+    }
+
+  }
+
+
+
+
+
+  // ============================================================
+
+  // ASTEROIDS
+
+  // ============================================================
+
+
+
+  function createAsteroid(
+
+    x,
+
+    y,
+
+    size = 1.5
+
+  ) {
+
+
+
+    const asteroid =
+
+      BABYLON.MeshBuilder
+
+        .CreateDisc(
+
+          "asteroid",
+
+          {
+
+            radius:
+
+              size / 2,
+
+
+
+            tessellation:
+
+              8
+
+          },
+
+          scene
+
+        );
+
+
+
+
+
+    asteroid.position.x = x;
+
+    asteroid.position.y = y;
+
+    asteroid.position.z = 0;
+
+
+
+
+
+    asteroid.material =
+
+      asteroidMaterial;
+
+
+
+
+
+    asteroid.size =
+
+      size;
+
+
+
+
+
+    asteroid.velocity =
+
+      new BABYLON.Vector2(
+
+
+
+        (Math.random() - 0.5)
+
+        * 0.025,
+
+
+
+        (Math.random() - 0.5)
+
+        * 0.025
+
+
+
+      );
+
+
+
+
+
+    asteroid.rotationSpeed =
+
+      (Math.random() - 0.5)
+
+      * 0.01;
+
+
+
+
+
+    asteroids.push(
+
+      asteroid
+
+    );
+
+  }
+
+
+
+
+
+  function spawnStartingAsteroids() {
+
+
+
+    createAsteroid(
+
+      -6, 4, 1.6
+
+    );
+
+
+
+    createAsteroid(
+
+      6, 3, 1.5
+
+    );
+
+
+
+    createAsteroid(
+
+      -5, -4, 1.8
+
+    );
+
+
+
+    createAsteroid(
+
+      5, -4, 1.4
+
+    );
+
+
+
+    createAsteroid(
+
+      0, 7, 1.5
+
+    );
+
+  }
+
+
+
+
+
+  spawnStartingAsteroids();
+
+
+
+
+
+  // ============================================================
+
+  // SHOOT
+
+  // ============================================================
+
+
+
+  function shootBullet() {
+
+
+
+
+    playLaserSound();
+const bullet =
+
+      BABYLON.MeshBuilder
+
+        .CreateDisc(
+
+          "bullet",
+
+          {
+
+            radius: 0.09,
+
+            tessellation: 12
+
+          },
+
+          scene
+
+        );
+
+
+
+
+
+    bullet.material =
+
+      shipMaterial;
+
+
+
+
+
+    const directionX =
+
+      -Math.sin(
+
+        shipAngle
+
+      );
+
+
+
+
+
+    const directionY =
+
+      Math.cos(
+
+        shipAngle
+
+      );
+
+
+
+
+
+    // Start bullet at the nose
+
+    // of the spaceship.
+
+
+
+    bullet.position.x =
+
+      ship.position.x +
+
+      directionX * 0.75;
+
+
+
+
+
+    bullet.position.y =
+
+      ship.position.y +
+
+      directionY * 0.75;
+
+
+
+
+
+    bullet.position.z = 0;
+
+
+
+
+
+    bullet.velocity =
+
+      new BABYLON.Vector2(
+
+
+
+        directionX * 0.16,
+
+
+
+        directionY * 0.16
+
+
+
+      );
+
+
+
+
+
+    bullet.life =
+
+      120;
+
+
+
+
+
+    bullets.push(
+
+      bullet
+
+    );
+
+  }
+
+
+
+
+
+  // ============================================================
+
+  // DISTANCE
+
+  // ============================================================
+
+
+
+  function distanceBetween(
+
+    a,
+
+    b
+
+  ) {
+
+
+
+    const dx =
+
+      a.position.x -
+
+      b.position.x;
+
+
+
+
+
+    const dy =
+
+      a.position.y -
+
+      b.position.y;
+
+
+
+
+
+    return Math.sqrt(
+
+      dx * dx +
+
+      dy * dy
+
+    );
+
+  }
+
+
+
+
+
+  // ============================================================
+
+  // DESTROY ASTEROID
+
+  // ============================================================
+
+
+
+  function destroyAsteroid(
+
+    index
+
+  ) {
+
+
+
+    const asteroid =
+
+      asteroids[index];
+
+
+
+
+
+    const x =
+
+      asteroid.position.x;
+
+
+
+
+
+    const y =
+
+      asteroid.position.y;
+
+
+
+
+
+    const oldSize =
+
+      asteroid.size;
+
+
+
+
+
+    asteroid.dispose();
+
+
+
+
+
+    asteroids.splice(
+
+      index,
+
+      1
+
+    );
+
+
+
+
+
+    score += 100;
+
+
+
+
+
+    scoreText.text =
+
+      "SCORE: " +
+
+      score;
+
+
+
+
+
+    // Split larger asteroids
+
+    // into two smaller asteroids.
+
+
+
+    if (
+
+      oldSize > 0.9
+
+    ) {
+
+
+
+      createAsteroid(
+
+        x + 0.3,
+
+        y,
+
+        oldSize * 0.6
+
+      );
+
+
+
+
+
+      createAsteroid(
+
+        x - 0.3,
+
+        y,
+
+        oldSize * 0.6
+
+      );
+
+    }
+
+  }
+
+
+
+
+
+  // ============================================================
+
+  // PLAYER HIT
+
+  // ============================================================
+
+
+
+  function playerHit() {
+
+
+
+
+    playBoomSound();
+lives--;
+
+
+
+
+
+    livesText.text =
+
+      "LIVES: " +
+
+      lives;
+
+
+
+
+
+    // Return ship to center.
+
+
+
+    ship.position.x = 0;
+
+    ship.position.y = 0;
+
+
+
+
+
+    // Remove its previous inertia.
+
+
+
+    shipVelocity.x = 0;
+
+    shipVelocity.y = 0;
+
+
+
+
+
+    // Point upward again.
+
+
+
+    shipAngle = 0;
+
+
+
+    ship.rotation.z = 0;
+
+
+
+
+
+    if (
+
+      lives <= 0
+
+    ) {
+
+
+
+      gameOver =
+
+        true;
+
+
+
+
+
+      ship.setEnabled(
+
+        false
+
+      );
+
+
+
+
+
+      gameOverText.text =
+
+
+
+        "GAME OVER" +
+
+
+
+        "\n\nFINAL SCORE: " +
+
+
+
+        score +
+
+
+
+        "\n\nPRESS R TO RESTART";
+
+    }
+
+  }
+
+
+
+
+
+  // ============================================================
+
+  // RESTART
+
+  // ============================================================
+
+
+
+  function restartGame() {
+
+
+
+    score = 0;
+
+
+
+    lives = 3;
+
+
+
+    gameOver = false;
+
+
+
+
+
+    scoreText.text =
+
+      "SCORE: 0";
+
+
+
+
+
+    livesText.text =
+
+      "LIVES: 3";
+
+
+
+
+
+    gameOverText.text =
+
+      "";
+
+
+
+
+
+    ship.position.x = 0;
+
+
+
+    ship.position.y = 0;
+
+
+
+
+
+    shipAngle = 0;
+
+
+
+    ship.rotation.z = 0;
+
+
+
+
+
+    // Reset inertia.
+
+
+
+    shipVelocity.x = 0;
+
+
+
+    shipVelocity.y = 0;
+
+
+
+
+
+    ship.setEnabled(
+
+      true
+
+    );
+
+
+
+
+
+    // Remove bullets.
+
+
+
+    for (
+
+      let i =
+
+        bullets.length - 1;
+
+
+
+      i >= 0;
+
+
+
+      i--
+
+    ) {
+
+
+
+      bullets[i]
+
+        .dispose();
+
+
+
+
+
+      bullets.splice(
+
+        i,
+
+        1
+
+      );
+
+    }
+
+
+
+
+
+    // Remove asteroids.
+
+
+
+    for (
+
+      let i =
+
+        asteroids.length - 1;
+
+
+
+      i >= 0;
+
+
+
+      i--
+
+    ) {
+
+
+
+      asteroids[i]
+
+        .dispose();
+
+
+
+
+
+      asteroids.splice(
+
+        i,
+
+        1
+
+      );
+
+    }
+
+
+
+
+
+    spawnStartingAsteroids();
+
+  }
+
+
+
+
+
+  // ============================================================
+
+  // MAIN GAME LOOP
+
+  // ============================================================
+
+
+
+  scene
+
+    .onBeforeRenderObservable
+
+    .add(function() {
+
+
+
+
+
+      // ========================================================
+
+      // GAME OVER
+
+      // ========================================================
+
+
+
+      if (
+
+        gameOver
+
+      ) {
+
+
+
+        if (
+
+          keys["KeyR"]
+
+        ) {
+
+
+
+          restartGame();
+
+
+
+          keys["KeyR"] =
+
+            false;
+
+        }
+
+
+
+        return;
+
+      }
+
+
+
+
+
+      // ========================================================
+
+      // TURN LEFT
+
+      // ========================================================
+
+
+
+      if (
+
+        keys["KeyA"] ||
+
+        keys["ArrowLeft"]
+
+      ) {
+
+
+
+        shipAngle +=
+
+          rotationSpeed;
+
+      }
+
+
+
+
+
+      // ========================================================
+
+      // TURN RIGHT
+
+      // ========================================================
+
+
+
+      if (
+
+        keys["KeyD"] ||
+
+        keys["ArrowRight"]
+
+      ) {
+
+
+
+        shipAngle -=
+
+          rotationSpeed;
+
+      }
+
+
+
+
+
+      // Flat 2D rotation.
+
+
+
+      ship.rotation.z =
+
+        shipAngle;
+
+
+
+
+
+      // ========================================================
+
+      // THRUST
+
+      // ========================================================
+
+
+
+      if (
+
+        keys["KeyW"] ||
+
+        keys["ArrowUp"]
+
+      ) {
+
+
+
+        // Find the direction
+
+        // the nose is pointing.
+
+
+
+        const directionX =
+
+          -Math.sin(
+
+            shipAngle
+
+          );
+
+
+
+
+
+        const directionY =
+
+          Math.cos(
+
+            shipAngle
+
+          );
+
+
+
+
+
+        // Add thrust to the
+
+        // current velocity.
+
+
+
+        shipVelocity.x +=
+
+          directionX *
+
+          thrustPower;
+
+
+
+
+
+        shipVelocity.y +=
+
+          directionY *
+
+          thrustPower;
+
+      }
+
+
+
+
+
+      // ========================================================
+
+      // MAXIMUM SPEED
+
+      // ========================================================
+
+
+
+      const currentSpeed =
+
+        Math.sqrt(
+
+
+
+          shipVelocity.x *
+
+          shipVelocity.x +
+
+
+
+          shipVelocity.y *
+
+          shipVelocity.y
+
+
+
+        );
+
+
+
+
+
+      if (
+
+        currentSpeed >
+
+        maxSpeed
+
+      ) {
+
+
+
+        shipVelocity.x =
+
+
+
+          (
+
+            shipVelocity.x /
+
+            currentSpeed
+
+          )
+
+
+
+          * maxSpeed;
+
+
+
+
+
+        shipVelocity.y =
+
+
+
+          (
+
+            shipVelocity.y /
+
+            currentSpeed
+
+          )
+
+
+
+          * maxSpeed;
+
+      }
+
+
+
+
+
+      // ========================================================
+
+      // SMALL AMOUNT OF DRAG
+
+      // ========================================================
+
+
+
+      shipVelocity.x *=
+
+        friction;
+
+
+
+
+
+      shipVelocity.y *=
+
+        friction;
+
+
+
+
+
+      // ========================================================
+
+      // MOVE SHIP USING ITS VELOCITY
+
+      // ========================================================
+
+
+
+      ship.position.x +=
+
+        shipVelocity.x;
+
+
+
+
+
+      ship.position.y +=
+
+        shipVelocity.y;
+
+
+
+
+
+      wrapObject(
+
+        ship
+
+      );
+
+
+
+
+
+      // ========================================================
+
+      // FIRE
+
+      // ========================================================
+
+
+
+      if (
+
+        keys["Space"] &&
+
+        canShoot
+
+      ) {
+
+
+
+        shootBullet();
+
+
+
+        canShoot =
+
+          false;
+
+      }
+
+
+
+
+
+      if (
+
+        !keys["Space"]
+
+      ) {
+
+
+
+        canShoot =
+
+          true;
+
+      }
+
+
+
+
+
+      // ========================================================
+
+      // UPDATE BULLETS
+
+      // ========================================================
+
+
+
+      for (
+
+        let i =
+
+          bullets.length - 1;
+
+
+
+        i >= 0;
+
+
+
+        i--
+
+      ) {
+
+
+
+        const bullet =
+
+          bullets[i];
+
+
+
+
+
+        bullet.position.x +=
+
+          bullet.velocity.x;
+
+
+
+
+
+        bullet.position.y +=
+
+          bullet.velocity.y;
+
+
+
+
+
+        wrapObject(
+
+          bullet
+
+        );
+
+
+
+
+
+        bullet.life--;
+
+
+
+
+
+        if (
+
+          bullet.life <= 0
+
+        ) {
+
+
+
+          bullet.dispose();
+
+
+
+
+
+          bullets.splice(
+
+            i,
+
+            1
+
+          );
+
+        }
+
+      }
+
+
+
+
+
+      // ========================================================
+
+      // UPDATE ASTEROIDS
+
+      // ========================================================
+
+
+
+      for (
+
+        let i = 0;
+
+
+
+        i <
+
+        asteroids.length;
+
+
+
+        i++
+
+      ) {
+
+
+
+        const asteroid =
+
+          asteroids[i];
+
+
+
+
+
+        asteroid.position.x +=
+
+          asteroid.velocity.x;
+
+
+
+
+
+        asteroid.position.y +=
+
+          asteroid.velocity.y;
+
+
+
+
+
+        asteroid.rotation.z +=
+
+          asteroid.rotationSpeed;
+
+
+
+
+
+        wrapObject(
+
+          asteroid
+
+        );
+
+      }
+
+
+
+
+
+      // ========================================================
+
+      // BULLET / ASTEROID COLLISIONS
+
+      // ========================================================
+
+
+
+      for (
+
+        let b =
+
+          bullets.length - 1;
+
+
+
+        b >= 0;
+
+
+
+        b--
+
+      ) {
+
+
+
+        const bullet =
+
+          bullets[b];
+
+
+
+
+
+        let destroyed =
+
+          false;
+
+
+
+
+
+        for (
+
+          let a =
+
+            asteroids.length - 1;
+
+
+
+          a >= 0;
+
+
+
+          a--
+
+        ) {
+
+
+
+          const asteroid =
+
+            asteroids[a];
+
+
+
+
+
+          const distance =
+
+            distanceBetween(
+
+              bullet,
+
+              asteroid
+
+            );
+
+
+
+
+
+          if (
+
+            distance <
+
+            asteroid.size / 2 +
+
+            0.12
+
+          ) {
+
+
+
+            bullet.dispose();
+
+
+
+
+
+            bullets.splice(
+
+              b,
+
+              1
+
+            );
+
+
+
+
+
+            destroyAsteroid(
+
+              a
+
+            );
+
+
+
+
+
+            destroyed =
+
+              true;
+
+
+
+
+
+            break;
+
+          }
+
+        }
+
+
+
+
+
+        if (
+
+          destroyed
+
+        ) {
+
+          continue;
+
+        }
+
+      }
+
+
+
+
+
+      // ========================================================
+
+      // SHIP / ASTEROID COLLISION
+
+      // ========================================================
+
+
+
+      for (
+
+        let i = 0;
+
+
+
+        i <
+
+        asteroids.length;
+
+
+
+        i++
+
+      ) {
+
+
+
+        const asteroid =
+
+          asteroids[i];
+
+
+
+
+
+        const distance =
+
+          distanceBetween(
+
+            ship,
+
+            asteroid
+
+          );
+
+
+
+
+
+        if (
+
+          distance <
+
+          asteroid.size / 2 +
+
+          0.35
+
+        ) {
+
+
+
+          playerHit();
+
+
+
+          break;
+
+        }
+
+      }
+
+
+
+
+
+      // ========================================================
+
+      // NEXT WAVE
+
+      // ========================================================
+
+
+
+      if (
+
+        asteroids.length === 0
+
+      ) {
+
+
+
+        createAsteroid(
+
+          -6,
+
+          4,
+
+          1.6
+
+        );
+
+
+
+        createAsteroid(
+
+          6,
+
+          4,
+
+          1.6
+
+        );
+
+
+
+        createAsteroid(
+
+          -6,
+
+          -4,
+
+          1.6
+
+        );
+
+
+
+        createAsteroid(
+
+          6,
+
+          -4,
+
+          1.6
+
+        );
+
+
+
+        createAsteroid(
+
+          0,
+
+          7,
+
+          1.6
+
+        );
+
+
+
+        createAsteroid(
+
+          0,
+
+          -7,
+
+          1.6
+
+        );
+
+      }
+
+
+
+    });
+
+
+
+
+
+  // ============================================================
+
+  // RESIZE
+
+  // ============================================================
+
+
+
+  window.addEventListener(
+
+    "resize",
+
+    function() {
+
+
+
+      engine.resize();
+
+
 
       updateCamera();
 
-      function makeMaterial(name, color) {
-        const material = new BABYLON.StandardMaterial(name, scene);
-        material.diffuseColor = color;
-        material.emissiveColor = color;
-        material.disableLighting = true;
-        return material;
-      }
+    }
 
-      const shipMaterial = makeMaterial("shipMaterial", new BABYLON.Color3(1, 1, 1));
-      const asteroidMaterial = makeMaterial("asteroidMaterial", new BABYLON.Color3(0.65, 0.65, 0.65));
+  );
 
-      const keys = {};
-      window.addEventListener("keydown", event => {
-        keys[event.code] = true;
-        if (["Space", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(event.code)) {
-          event.preventDefault();
-        }
-      });
-      window.addEventListener("keyup", event => {
-        keys[event.code] = false;
-      });
 
-      let score = 0;
-      let lives = 3;
-      let gameOver = false;
-      let canShoot = true;
-      const bullets = [];
-      const asteroids = [];
 
-      const laserSound = new Audio("Babylon/laser.mp3");
-      const boomSound = new Audio("Babylon/boom.mp3");
-      laserSound.volume = 0.5;
-      boomSound.volume = 0.7;
 
-      function playLaserSound() {
-        const sound = laserSound.cloneNode();
-        sound.volume = laserSound.volume;
-        sound.play().catch(() => {});
-      }
 
-      function playBoomSound() {
-        boomSound.currentTime = 0;
-        boomSound.play().catch(() => {});
-      }
+  return scene;
 
-      const gui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+};
 
-      const scoreText = new BABYLON.GUI.TextBlock();
-      scoreText.text = "SCORE: 0";
-      scoreText.color = "white";
-      scoreText.fontSize = 24;
-      scoreText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-      scoreText.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-      scoreText.paddingLeft = "20px";
-      scoreText.paddingTop = "20px";
-      gui.addControl(scoreText);
 
-      const livesText = new BABYLON.GUI.TextBlock();
-      livesText.text = "LIVES: 3";
-      livesText.color = "white";
-      livesText.fontSize = 24;
-      livesText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-      livesText.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-      livesText.paddingRight = "20px";
-      livesText.paddingTop = "20px";
-      gui.addControl(livesText);
 
-      const controlsText = new BABYLON.GUI.TextBlock();
-      controlsText.text = "W / ↑ = THRUST    A/D or ←/→ = TURN    SPACE = FIRE";
-      controlsText.color = "white";
-      controlsText.fontSize = 18;
-      controlsText.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-      controlsText.paddingBottom = "15px";
-      gui.addControl(controlsText);
 
-      const gameOverText = new BABYLON.GUI.TextBlock();
-      gameOverText.color = "white";
-      gameOverText.fontSize = 40;
-      gameOverText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-      gameOverText.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-      gui.addControl(gameOverText);
 
-      function createShip() {
-        const ship = new BABYLON.Mesh("ship", scene);
-        const positions = [0, 0.65, 0, -0.45, -0.45, 0, 0.45, -0.45, 0];
-        const indices = [0, 1, 2];
-        const normals = [];
-        BABYLON.VertexData.ComputeNormals(positions, indices, normals);
-        const vertexData = new BABYLON.VertexData();
-        vertexData.positions = positions;
-        vertexData.indices = indices;
-        vertexData.normals = normals;
-        vertexData.applyToMesh(ship);
-        ship.material = shipMaterial;
-        return ship;
-      }
+// ============================================================
 
-      const ship = createShip();
-      let shipAngle = 0;
-      const rotationSpeed = 0.025;
-      const thrustPower = 0.0015;
-      const maxSpeed = 0.055;
-      const friction = 0.998;
-      const shipVelocity = new BABYLON.Vector2(0, 0);
+// START BABYLON
 
-      function wrapObject(object) {
-        const { left, right, top, bottom } = camera;
-        if (object.position.x > right) object.position.x = left;
-        if (object.position.x < left) object.position.x = right;
-        if (object.position.y > top) object.position.y = bottom;
-        if (object.position.y < bottom) object.position.y = top;
-      }
+// ============================================================
 
-      function createAsteroid(x, y, size = 1.5) {
-        const asteroid = BABYLON.MeshBuilder.CreateDisc("asteroid", {
-          radius: size / 2,
-          tessellation: 8
-        }, scene);
-        asteroid.position.set(x, y, 0);
-        asteroid.material = asteroidMaterial;
-        asteroid.size = size;
-        asteroid.velocity = new BABYLON.Vector2(
-          (Math.random() - 0.5) * 0.025,
-          (Math.random() - 0.5) * 0.025
-        );
-        asteroid.rotationSpeed = (Math.random() - 0.5) * 0.01;
-        asteroids.push(asteroid);
-      }
 
-      function spawnStartingAsteroids() {
-        createAsteroid(-6, 4, 1.6);
-        createAsteroid(6, 3, 1.5);
-        createAsteroid(-5, -4, 1.8);
-        createAsteroid(5, -4, 1.4);
-        createAsteroid(0, 7, 1.5);
-      }
 
-      spawnStartingAsteroids();
+const scene =
 
-      function shootBullet() {
-        playLaserSound();
-        const bullet = BABYLON.MeshBuilder.CreateDisc("bullet", {
-          radius: 0.09,
-          tessellation: 12
-        }, scene);
-        bullet.material = shipMaterial;
-        const directionX = -Math.sin(shipAngle);
-        const directionY = Math.cos(shipAngle);
-        bullet.position.set(ship.position.x + directionX * 0.75, ship.position.y + directionY * 0.75, 0);
-        bullet.velocity = new BABYLON.Vector2(directionX * 0.16, directionY * 0.16);
-        bullet.life = 120;
-        bullets.push(bullet);
-      }
+  createScene();
 
-      function distanceBetween(a, b) {
-        const dx = a.position.x - b.position.x;
-        const dy = a.position.y - b.position.y;
-        return Math.sqrt(dx * dx + dy * dy);
-      }
 
-      function destroyAsteroid(index) {
-        const asteroid = asteroids[index];
-        const x = asteroid.position.x;
-        const y = asteroid.position.y;
-        const oldSize = asteroid.size;
-        asteroid.dispose();
-        asteroids.splice(index, 1);
-        score += 100;
-        scoreText.text = "SCORE: " + score;
 
-        if (oldSize > 0.9) {
-          createAsteroid(x + 0.3, y, oldSize * 0.6);
-          createAsteroid(x - 0.3, y, oldSize * 0.6);
-        }
-      }
 
-      function playerHit() {
-        playBoomSound();
-        lives--;
-        livesText.text = "LIVES: " + lives;
-        ship.position.set(0, 0, 0);
-        shipVelocity.set(0, 0);
-        shipAngle = 0;
-        ship.rotation.z = 0;
 
-        if (lives <= 0) {
-          gameOver = true;
-          ship.setEnabled(false);
-          gameOverText.text = "GAME OVER\n\nFINAL SCORE: " + score + "\n\nPRESS R TO RESTART";
-        }
-      }
+engine.runRenderLoop(
 
-      function restartGame() {
-        score = 0;
-        lives = 3;
-        gameOver = false;
-        scoreText.text = "SCORE: 0";
-        livesText.text = "LIVES: 3";
-        gameOverText.text = "";
-        ship.position.set(0, 0, 0);
-        shipAngle = 0;
-        ship.rotation.z = 0;
-        shipVelocity.set(0, 0);
-        ship.setEnabled(true);
+  function() {
 
-        for (let i = bullets.length - 1; i >= 0; i--) {
-          bullets[i].dispose();
-          bullets.splice(i, 1);
-        }
-        for (let i = asteroids.length - 1; i >= 0; i--) {
-          asteroids[i].dispose();
-          asteroids.splice(i, 1);
-        }
-        spawnStartingAsteroids();
-      }
 
-      scene.onBeforeRenderObservable.add(() => {
-        if (gameOver) {
-          if (keys.KeyR) {
-            restartGame();
-            keys.KeyR = false;
-          }
-          return;
-        }
 
-        if (keys.KeyA || keys.ArrowLeft) shipAngle += rotationSpeed;
-        if (keys.KeyD || keys.ArrowRight) shipAngle -= rotationSpeed;
-        ship.rotation.z = shipAngle;
+    scene.render();
 
-        if (keys.KeyW || keys.ArrowUp) {
-          const directionX = -Math.sin(shipAngle);
-          const directionY = Math.cos(shipAngle);
-          shipVelocity.x += directionX * thrustPower;
-          shipVelocity.y += directionY * thrustPower;
-        }
+  }
 
-        const currentSpeed = Math.sqrt(shipVelocity.x * shipVelocity.x + shipVelocity.y * shipVelocity.y);
-        if (currentSpeed > maxSpeed) {
-          shipVelocity.x = (shipVelocity.x / currentSpeed) * maxSpeed;
-          shipVelocity.y = (shipVelocity.y / currentSpeed) * maxSpeed;
-        }
-        shipVelocity.x *= friction;
-        shipVelocity.y *= friction;
-        ship.position.x += shipVelocity.x;
-        ship.position.y += shipVelocity.y;
-        wrapObject(ship);
+);
 
-        if (keys.Space && canShoot) {
-          shootBullet();
-          canShoot = false;
-        }
-        if (!keys.Space) canShoot = true;
 
-        for (let i = bullets.length - 1; i >= 0; i--) {
-          const bullet = bullets[i];
-          bullet.position.x += bullet.velocity.x;
-          bullet.position.y += bullet.velocity.y;
-          wrapObject(bullet);
-          bullet.life--;
-          if (bullet.life <= 0) {
-            bullet.dispose();
-            bullets.splice(i, 1);
-          }
-        }
 
-        for (let i = 0; i < asteroids.length; i++) {
-          const asteroid = asteroids[i];
-          asteroid.position.x += asteroid.velocity.x;
-          asteroid.position.y += asteroid.velocity.y;
-          asteroid.rotation.z += asteroid.rotationSpeed;
-          wrapObject(asteroid);
-        }
+</script>
 
-        for (let b = bullets.length - 1; b >= 0; b--) {
-          const bullet = bullets[b];
-          let destroyed = false;
-          for (let a = asteroids.length - 1; a >= 0; a--) {
-            const asteroid = asteroids[a];
-            if (distanceBetween(bullet, asteroid) < asteroid.size / 2 + 0.12) {
-              bullet.dispose();
-              bullets.splice(b, 1);
-              destroyAsteroid(a);
-              destroyed = true;
-              break;
-            }
-          }
-          if (destroyed) continue;
-        }
 
-        for (let i = 0; i < asteroids.length; i++) {
-          const asteroid = asteroids[i];
-          if (distanceBetween(ship, asteroid) < asteroid.size / 2 + 0.35) {
-            playerHit();
-            break;
-          }
-        }
 
-        if (asteroids.length === 0) {
-          createAsteroid(-6, 4, 1.6);
-          createAsteroid(6, 4, 1.6);
-          createAsteroid(-6, -4, 1.6);
-          createAsteroid(6, -4, 1.6);
-          createAsteroid(0, 7, 1.6);
-          createAsteroid(0, -7, 1.6);
-        }
-      });
-
-      window.addEventListener("resize", () => {
-        engine.resize();
-        updateCamera();
-      });
-
-      return scene;
-    };
-
-    const scene = createScene();
-    engine.runRenderLoop(() => scene.render());
-  </script>
 </body>
+
 </html>
